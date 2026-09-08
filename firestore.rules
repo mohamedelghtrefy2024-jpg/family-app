@@ -1,0 +1,270 @@
+// firestore.rules
+//
+// ============================================================================
+// قواعد الأمان — المرجع الوحيد لصلاحيات الأب/الأم مقابل الأبناء (القسم 3 من
+// برومبت الترحيل). هذا الملف هو الحماية الحقيقية — إخفاء الأزرار في الواجهة
+// (React) إضافي فوق ده فقط، مش بديل عنه.
+//
+// المبدأ: كل حاجة Deny افتراضيًا، وأي Collection لازم تتحقق صراحة من:
+//   1. المستخدم Authenticated
+//   2. المستخدم عضو فعّال (Active) في نفس الأسرة (familyId) بتاعة المستند
+//   3. لو المستند حساس ماليًا → role == 'Parent' فقط
+//   4. لو المستند خاص بابن معيّن (lessons/schedule) → الابن يشوف بتاعه بس،
+//      الأب/الأم يشوفوا كل حاجة في أسرتهم
+// ============================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    // نسخة Spark (مجانية بالكامل، بدون Blaze/Cloud Functions): بدل ما نعتمد
+    // على Custom Claims (كانت بتتحط بواسطة Cloud Function trigger على
+    // members/{userId})، هنا مصدر الحقيقة عن دور المستخدم هو مستند Firestore
+    // عادي في userProfiles/{uid} — بيتكتب مباشرة من العميل (الأب/الأم وقت
+    // الربط، أو المستخدم نفسه وقت الـ Bootstrap) بدل السيرفر. get() جوه الـ
+    // Rules بتتنفذ بصلاحية كاملة بغض النظر عن allow read على المستند نفسه،
+    // وبتتكاش لنفس المسار جوه نفس التقييم — تكلفة قراءة إضافية واحدة تقريبًا
+    // لكل عملية، وده مقبول تمامًا جوه الحد المجاني (50 ألف قراءة/يوم).
+    function callerProfile() {
+      return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data;
+    }
+
+    function hasProfile() {
+      return isSignedIn() && exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid));
+    }
+
+    function authFamilyId() {
+      return callerProfile().familyId;
+    }
+
+    function authRole() {
+      return callerProfile().role;
+    }
+
+    function authLinkedChildId() {
+      return callerProfile().linkedChildId;
+    }
+
+    function isParent() {
+      return hasProfile() && authRole() == 'Parent';
+    }
+
+    function isChild() {
+      return hasProfile() && authRole() == 'Child';
+    }
+
+    // عضو فعّال في نفس الأسرة بتاعة المستند (أي دور)
+    function isFamilyMember(familyId) {
+      return isSignedIn() && authFamilyId() == familyId;
+    }
+
+    // أب/أم في نفس الأسرة بتاعة المستند — الحارس الأساسي لكل حاجة مالية
+    function isParentOfFamily(familyId) {
+      return isParent() && authFamilyId() == familyId;
+    }
+
+    // ابن بيحاول يشوف مستند خاص بيه هو بس (child_id على المستند == سجله المرتبط)
+    function isOwnChildRecord(familyId, childId) {
+      return isChild() && authFamilyId() == familyId && authLinkedChildId() == childId;
+    }
+
+    // ------------------------------------------------------------------
+    // families/{familyId} — بيانات الأسرة نفسها (اسم، إعدادات عامة)
+    // ------------------------------------------------------------------
+    match /families/{familyId} {
+      allow read: if isFamilyMember(familyId);
+      // إنشاء أسرة جديدة: مسموح لأي مستخدم مسجّل دخول (هو اللي هيبقى "المؤسس")
+      // بشرط يحدّد نفسه كـ founderUid — ده مجرد Shell فاضي جديد، مفيش أي بيانات
+      // حساسة هنا، والحماية الحقيقية في السطر اللي بعده (bootstrap لعضوية
+      // Parent الأولى، مقصورة على founderUid بس — راجع §8.3/Bootstrap).
+      allow create: if isSignedIn() && request.resource.data.founderUid == request.auth.uid;
+      allow update, delete: if isParentOfFamily(familyId);
+
+      // --------------------------------------------------------------
+      // members — إدارة أعضاء الأسرة (ربط يدوي، القسم 8.3)
+      // --------------------------------------------------------------
+      match /members/{userId} {
+        // أي عضو فعّال يقدر يشوف قايمة أعضاء أسرته (أسماء بس، مفيش بيانات مالية هنا)
+        allow read: if isFamilyMember(familyId);
+        // الحالة العادية: الأب/الأم الموجود بالفعل بيربط عضو جديد.
+        // حالة الـ Bootstrap (أول Parent في أسرة جديدة تمامًا): مسموح للمستخدم
+        // يضيف نفسه بس كـ Parent، وبس لو هو نفسه "مؤسس" هذه الأسرة تحديدًا
+        // (founderUid على مستند families/{familyId} == نفس المستخدم) — ده
+        // بيمنع أي غريب يضيف نفسه Parent في أسرة حد تاني.
+        allow create: if isParentOfFamily(familyId)
+          || (isSignedIn() && request.auth.uid == userId
+              && request.resource.data.role == 'Parent'
+              && get(/databases/$(database)/documents/families/$(familyId)).data.founderUid == request.auth.uid);
+        allow update, delete: if isParentOfFamily(familyId);
+      }
+
+      // --------------------------------------------------------------
+      // بيانات مرجعية (Reference Data): مدارس، مواد، مدرّسين، أماكن، سنوات دراسية
+      // قراءة مسموحة لكل أعضاء الأسرة (الابن محتاجها يشوف اسم المدرّس/المكان
+      // في جدوله)، الكتابة للأب/الأم بس.
+      // --------------------------------------------------------------
+      match /academicYears/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isParentOfFamily(familyId);
+      }
+      match /schools/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isParentOfFamily(familyId);
+      }
+      match /schoolScheduleDays/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isParentOfFamily(familyId);
+      }
+      match /subjects/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isParentOfFamily(familyId);
+      }
+      match /teachers/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isParentOfFamily(familyId);
+      }
+      match /locations/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isParentOfFamily(familyId);
+      }
+      match /transitTimes/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isParentOfFamily(familyId);
+      }
+
+      // --------------------------------------------------------------
+      // children — سجلات الأبناء نفسها (اسم، تاريخ ميلاد...)
+      // الابن يشوف سجله هو بس؛ الأب/الأم يشوفوا ويعدّلوا كل الأبناء.
+      // --------------------------------------------------------------
+      match /children/{childId} {
+        allow read: if isParentOfFamily(familyId) || isOwnChildRecord(familyId, childId);
+        allow write: if isParentOfFamily(familyId);
+      }
+
+      match /childSchoolEnrollments/{docId} {
+        allow read: if isParentOfFamily(familyId)
+          || isOwnChildRecord(familyId, resource.data.child_id);
+        allow write: if isParentOfFamily(familyId);
+      }
+
+      // --------------------------------------------------------------
+      // lessons — تفاصيل الدرس (مادة/مدرّس/مكان/وقت) — مسموح للابن يشوف بتاعه
+      // بس، ومسموح له يشوف سعر الدرس (per-lesson price) كجزء من نفس المستند
+      // أو من prices — مطلوب صراحة في §3 من برومبت الترحيل.
+      // --------------------------------------------------------------
+      match /lessons/{lessonId} {
+        allow read: if isParentOfFamily(familyId)
+          || isOwnChildRecord(familyId, resource.data.child_id);
+        allow write: if isParentOfFamily(familyId);
+      }
+
+      match /lessonSchedulePatterns/{docId} {
+        allow read: if isParentOfFamily(familyId)
+          || isOwnChildRecord(familyId, resource.data.child_id);
+        allow write: if isParentOfFamily(familyId);
+      }
+
+      match /lessonScheduleExceptions/{docId} {
+        allow read: if isParentOfFamily(familyId)
+          || isOwnChildRecord(familyId, resource.data.child_id);
+        allow write: if isParentOfFamily(familyId);
+      }
+
+      // prices — سعر الدرس. الابن مسموح له يشوفه (مطلوب صراحة)، ميعدّلوش.
+      match /prices/{docId} {
+        allow read: if isParentOfFamily(familyId)
+          || isOwnChildRecord(familyId, resource.data.child_id);
+        allow write: if isParentOfFamily(familyId);
+      }
+
+      // events — أحداث عامة (زي "رحلة مدرسية"). ممكن تكون خاصة بابن أو عامة
+      // للأسرة (child_id == null). الابن يشوف بتاعته + العامة، مش بتاعة إخوته.
+      match /events/{docId} {
+        allow read: if isParentOfFamily(familyId)
+          || (isChild() && authFamilyId() == familyId &&
+              (resource.data.child_id == null || resource.data.child_id == authLinkedChildId()));
+        allow write: if isParentOfFamily(familyId);
+      }
+
+      // --------------------------------------------------------------
+      // 🔒 بيانات مالية — Deny كامل للابن، حتى القراءة. دي أهم Rules في
+      // الملف كله — أي تعديل هنا لازم يتراجع عليه بحرص شديد.
+      // --------------------------------------------------------------
+      match /expenseCategories/{docId} {
+        allow read, write: if isParentOfFamily(familyId);
+      }
+      match /expenses/{docId} {
+        allow read, write: if isParentOfFamily(familyId);
+      }
+      match /expenseRecurrenceRules/{docId} {
+        allow read, write: if isParentOfFamily(familyId);
+      }
+      match /payments/{docId} {
+        allow read, write: if isParentOfFamily(familyId);
+      }
+      match /budgets/{docId} {
+        allow read, write: if isParentOfFamily(familyId);
+      }
+
+      // settings — إعدادات عامة للتطبيق (مش تنبيهات شخصية، دي في members)
+      match /settings/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isParentOfFamily(familyId);
+      }
+
+      // سجل منع تكرار التنبيهات المُرسلة (Phase G) — الـ Cloud Function بس
+      // (Admin SDK) اللي بتكتب هنا، العميل ميحتاجش يقرا أو يكتب فيها مباشرة.
+      match /sentNotifications/{docId} {
+        allow read, write: if false;
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // userProfiles/{uid} — بديل Spark (مجاني) للـ Custom Claims: مستند واحد
+    // بسيط فيه role/familyId/linkedChildId بتاعة كل مستخدم. ده اللي بتتحقق
+    // منه كل الدوال فوق (authRole/authFamilyId/authLinkedChildId) بدل التوكن.
+    // ------------------------------------------------------------------
+    match /userProfiles/{uid} {
+      // كل مستخدم يشوف بروفايله هو بس (AuthContext بيقرأه مباشرة بعد الدخول).
+      allow read: if isSignedIn() && request.auth.uid == uid;
+
+      // إنشاء: إما (أ) Bootstrap — أول Parent في أسرة جديدة يضيف بروفايل
+      // نفسه هو بس، بشرط يكون founderUid لنفس الأسرة (زي members/{userId}
+      // بالظبط)، أو (ب) أب/أم موجود بالفعل بيربط عضو جديد (نفسه أو غيره)
+      // في أسرته.
+      allow create: if isParentOfFamily(request.resource.data.familyId)
+        || (isSignedIn() && request.auth.uid == uid
+            && request.resource.data.role == 'Parent'
+            && get(/databases/$(database)/documents/families/$(request.resource.data.familyId)).data.founderUid == request.auth.uid);
+
+      // تعديل/حذف: الأب/الأم بتاع نفس الأسرة بس (مفيش حد يقدر يرقّي نفسه).
+      allow update: if isParentOfFamily(resource.data.familyId);
+      allow delete: if isParentOfFamily(resource.data.familyId);
+    }
+
+    // ------------------------------------------------------------------
+    // pendingLinkRequests/{uid} — طلب ربط مؤقت (القسم 8.3: الربط اليدوي).
+    // مستخدم جديد (ابن أو أب/أم تاني، الاتنين بالإيميل دلوقتي — نسخة Spark
+    // المجانية بلا Phone Auth) بيسجّل هنا نفسه أول ما يدخل التطبيق ولسه
+    // معندوش عضوية/دور في أي أسرة. أي Parent
+    // (بغض النظر عن أسرته، لأن الأسرة نفسها مش معروفة هنا لسه) يقدر يشوف
+    // ويربط — ده مقبول لأن المحتوى نفسه غير حساس (مجرد identifier + uid).
+    // ------------------------------------------------------------------
+    match /pendingLinkRequests/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isParent());
+      allow list: if isParent();
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      // الحذف بعد الربط الناجح — الأب/الأم اللي أكمل الربط، أو المستخدم نفسه.
+      allow delete: if isSignedIn() && (request.auth.uid == uid || isParent());
+      allow update: if false;
+    }
+  }
+}
