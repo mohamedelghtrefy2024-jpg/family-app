@@ -5,7 +5,9 @@ import App from './App.jsx'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    // BASE_URL نسبي (راجع vite.config.js: base: "./") عشان يشتغل صح سواء من
+    // الجذر (سيرفر محلي) أو من مسار فرعي زي GitHub Pages.
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
       // فشل تسجيل الـ Service Worker لا يمنع التطبيق من الشغل عاديًا أونلاين
     });
   });

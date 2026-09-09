@@ -22,7 +22,11 @@
 // موجودة في تاريخ الـ git.
 //
 const CACHE_VERSION = "family-app-v1";
-const APP_SHELL = ["/", "/manifest.json"];
+// self.registration.scope بدل مسار "/" ثابت — عشان يشتغل صح سواء الـ SW
+// مسجّل على الجذر (سيرفر محلي) أو على مسار فرعي زي GitHub Pages
+// (username.github.io/repo/).
+const SCOPE = self.registration.scope; // ينتهي دايمًا بـ "/"
+const APP_SHELL = [SCOPE, SCOPE + "manifest.json"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -56,10 +60,10 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put("/", copy));
+          caches.open(CACHE_VERSION).then((cache) => cache.put(SCOPE, copy));
           return response;
         })
-        .catch(() => caches.match("/"))
+        .catch(() => caches.match(SCOPE))
     );
     return;
   }
