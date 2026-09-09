@@ -1,0 +1,583 @@
+:root {
+  --paper: #FAF7F0;
+  --paper-raised: #FFFFFF;
+  --ink: #22201C;
+  --ink-muted: #6B6459;
+  --line: #E4DDCE;
+  --primary: #0F5257;
+  --primary-ink: #FFFFFF;
+  --accent-money: #B5760A;
+  --accent-money-soft: #F6E7CC;
+  --danger: #A6342A;
+  --danger-soft: #F3DEDA;
+  --success: #2E6B44;
+  --success-soft: #DEEAE1;
+
+  --font: "Tajawal", system-ui, sans-serif;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; font-size: 15px; }
+
+.app-shell { display: flex; min-height: 100vh; }
+
+.app-nav {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--paper-raised);
+  border-left: 1px solid var(--line);
+  padding: 24px 0;
+}
+
+.app-nav-brand {
+  font-weight: 900;
+  font-size: 19px;
+  padding: 0 22px 20px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+
+.app-nav-item {
+  display: block;
+  width: 100%;
+  text-align: right;
+  padding: 12px 22px;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  border-right: 3px solid transparent;
+}
+
+.app-nav-item.active {
+  color: var(--primary);
+  border-right-color: var(--primary);
+  background: rgba(15, 82, 87, 0.08);
+  font-weight: 700;
+}
+
+.app-main { flex: 1; padding: 32px 40px; max-width: 1100px; }
+
+.page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-title { font-size: 26px; font-weight: 900; margin: 0; }
+.page-subtitle { color: var(--ink-muted); font-size: 14px; margin-top: 4px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.btn-primary { background: var(--primary); color: var(--primary-ink); }
+.btn-ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+.btn-danger { background: var(--danger-soft); color: var(--danger); }
+
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.list-row:first-child { border-top: 1px solid var(--line); }
+.list-row-name { font-weight: 700; font-size: 16px; }
+.list-row-meta { color: var(--ink-muted); font-size: 13px; margin-top: 2px; }
+.list-row-actions { display: flex; gap: 8px; }
+
+.empty-state {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+.empty-state-title { color: var(--ink); font-weight: 700; font-size: 17px; margin-bottom: 6px; }
+
+.form-panel {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 24px;
+}
+
+.form-row { margin-bottom: 14px; }
+
+.form-row label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  margin-bottom: 6px;
+}
+
+.form-row input, .form-row select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.form-row input:focus, .form-row select:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.form-actions { display: flex; gap: 10px; margin-top: 18px; }
+
+.weekday-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.weekday-chip {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.weekday-chip.selected {
+  background: var(--primary);
+  color: var(--primary-ink);
+  border-color: var(--primary);
+}
+
+.error-banner {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 6px; align-self: center; }
+.tag-inactive { background: var(--danger-soft); color: var(--danger); }
+.tag-paid { background: var(--success-soft); color: var(--success); }
+.tag-partial { background: var(--accent-money-soft); color: var(--accent-money); }
+.tag-due { background: var(--accent-money-soft); color: var(--accent-money); }
+.tag-overdue { background: var(--danger-soft); color: var(--danger); }
+
+/* ===== Phase 9: Dashboard / Calendar / Family Schedule ===== */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.dashboard-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.dashboard-card-title { font-weight: 800; font-size: 16px; margin-bottom: 12px; }
+.dashboard-subtitle { font-size: 13px; color: var(--ink-muted); margin: 12px 0 6px; }
+.dashboard-empty { color: var(--ink-muted); font-size: 14px; }
+
+.agenda-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+.agenda-item:first-of-type { border-top: none; }
+.agenda-time { font-weight: 700; color: var(--ink-muted); min-width: 48px; }
+.agenda-label { flex: 1; }
+
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 14px; }
+.stat-big { font-weight: 900; font-size: 20px; }
+
+.problem-item {
+  font-size: 13.5px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  color: var(--danger);
+}
+.problem-item:first-of-type { border-top: none; }
+
+/* Calendar */
+.calendar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.view-toggle, .calendar-nav { display: flex; gap: 8px; align-items: center; }
+.calendar-range-label { font-weight: 700; padding: 0 6px; }
+
+.calendar-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.calendar-filters select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+}
+
+.calendar-day-block { margin-bottom: 18px; }
+.calendar-day-heading { font-weight: 800; margin-bottom: 6px; }
+
+.calendar-event {
+  display: flex;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  font-size: 14px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+}
+.calendar-event-time { font-weight: 700; min-width: 90px; color: var(--ink-muted); }
+.calendar-event-payment { border-color: var(--accent-money); }
+.calendar-event-transit { border-color: var(--danger-soft); }
+
+.month-grid-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-weight: 700;
+  color: var(--ink-muted);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.month-cell {
+  min-height: 90px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  background: var(--paper-raised);
+}
+.month-cell:hover { border-color: var(--primary); }
+.month-cell-outside { opacity: 0.4; }
+.month-cell-date { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.month-cell-chip {
+  font-size: 11px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: var(--accent-money-soft);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.month-cell-more { font-size: 11px; color: var(--ink-muted); }
+
+/* Family Schedule */
+.family-schedule-wrap { overflow-x: auto; }
+.family-schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.family-schedule-table th, .family-schedule-table td {
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  text-align: center;
+}
+.family-schedule-table th { background: var(--paper-raised); font-weight: 800; }
+.family-schedule-time { font-weight: 700; color: var(--ink-muted); white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== Phase 10: Financial Reports ===== */
+
+.fin-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.fin-tab {
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+}
+
+.fin-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.fin-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.fin-filter-row label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.fin-filter-row input, .fin-filter-row select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+  font-size: 14px;
+}
+
+.trend-chart {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+/* ===== Phase 12: Notifications & Attention Center ===== */
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.toggle-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+/* ===== Firebase Migration: Auth screens (Mobile First) ===== */
+
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--paper);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+}
+
+.auth-brand {
+  font-weight: 900;
+  font-size: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  border-bottom: 2px solid transparent;
+}
+
+.auth-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.auth-field input,
+.auth-field select {
+  padding: 12px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 16px; /* 16px+ يمنع الزووم التلقائي على iOS */
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.auth-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.auth-hint {
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.auth-switch-mode {
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-size: 13px;
+  text-align: center;
+  padding: 8px;
+}
+
+/* ===== Firebase Migration: generic card/page/list helpers ===== */
+
+.page { padding: 24px; max-width: 900px; margin: 0 auto; }
+.card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.card h3 { margin-top: 0; }
+.list { list-style: none; margin: 0; padding: 0; }
+
+/* ===== Firebase Migration: Child role — Mobile First shell ===== */
+/* الابن غالبًا هيفتح التطبيق من موبايله بس (§6/Phase E) — شكل تاب بار سفلي
+   بدل الـ Sidebar المستخدم مع الأب/الأم، مصمّم Mobile First من الأساس مش
+   Responsive بس. */
+
+.child-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-bottom: 64px; /* مساحة للـ bottom nav الثابت */
+}
+
+.child-header {
+  padding: 16px 20px;
+  background: var(--paper-raised);
+  border-bottom: 1px solid var(--line);
+  font-weight: 900;
+  font-size: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.child-main { flex: 1; padding: 16px; }
+
+.child-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  background: var(--paper-raised);
+  border-top: 1px solid var(--line);
+  padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+}
+
+.child-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.child-nav-item.active { color: var(--primary); font-weight: 700; }
+.child-nav-item .icon { font-size: 20px; }
+
+/* عام: على شاشات موبايل، نفس القواعد دي تفيد شاشات الأب/الأم كمان لو
+   فُتحت من الموبايل — الـ Sidebar الحالي يتحول لشريط علوي بسيط. */
+@media (max-width: 640px) {
+  .app-shell { flex-direction: column; }
+  .app-nav {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    padding: 8px 8px;
+    border-left: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .app-nav-brand { display: none; }
+  .app-nav-item { white-space: nowrap; width: auto; }
+  .app-main { padding: 16px; }
+  .auth-card { padding: 22px 18px; }
+}
